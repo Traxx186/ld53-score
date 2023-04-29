@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: ludem-dare-53-score
+    restart: unless-stopped
+    networks:
+      - caddy
+    labels:
+      caddy: ld53.justinvanderkruit.nl
+      caddy.header: /*
+      caddy.header.-Server: ""
+      caddy.header.Strict-Transport-Security: '"max-age=15552000;"'
+      caddy.reverse_proxy: "app:8000"
+      caddy.encode: zstd gzip
+
+networks:
+  caddy:
+    external: true

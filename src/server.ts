@@ -16,7 +16,7 @@ await sql`
         score integer NOT NULL DEFAULT 0,
         PRIMARY KEY (id)
     )
-`
+`;
 
 const router = new Router();
 router.get("/", async (ctx: Context) => {
@@ -64,10 +64,10 @@ router.get("/:id", async (ctx: Context) => {
         notFound(ctx, `Score with id '${id}' not found`);
     
     jsonResponse(ctx, score[0]);
-})
+});
 
 const app = new Application();
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-await app.listen({ port: 6969 });
+await app.listen({ port: 8000 });
