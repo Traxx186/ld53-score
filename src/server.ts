@@ -14,6 +14,8 @@ await sql`
         id uuid NOT NULL DEFAULT uuid_generate_v4(),
         username character varying(50) NOT NULL,
         score integer NOT NULL DEFAULT 0,
+        created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp,
         PRIMARY KEY (id)
     )
 `;
@@ -60,11 +62,70 @@ router.get("/:id", async (ctx: Context) => {
         WHERE id = ${ctx.params.id}
     `;
 
-    if (!score[0])
+    if (!score[0]) {
         notFound(ctx, `Score with id '${id}' not found`);
+        return;
+    }
     
     jsonResponse(ctx, score[0]);
 });
+
+router.patch("/:id", async (ctx: Context) => {
+    if (!ctx.params.id)
+        ctx.throw(Status.BadRequest, STATUS_TEXT[Status.BadRequest]);
+
+    const body = ctx.request.body();
+    if (body.type !== "json")
+        ctx.throw(Status.UnsupportedMediaType, STATUS_TEXT[Status.UnsupportedMediaType]);
+    
+    const { score } = await body.value;
+    const { id } = ctx.params;
+    if (!uuid.validate(id))
+        ctx.throw(Status.BadRequest, "Id is not a valid UUID");
+    
+    const count = await sql`
+        SELECT count(id) FROM score
+        WHERE id = ${ctx.params.id}
+    `;
+
+    if (count[0].count == 0) {
+        notFound(ctx, `Score with id '${id}' not found`);
+        return;
+    }
+
+    if (!score)
+        ctx.throw(Status.BadRequest, "A score is required");
+
+    const updatedScore = await sql`
+        UPDATE score
+        SET score = ${score},
+            updated_at = ${sql`now()`}
+        WHERE id = ${id}
+        RETURNING *
+    `;
+
+    jsonResponse(ctx, updatedScore[0]);
+});
+
+router.delete("/:id", async (ctx: Context) => {
+    const { id } = ctx.params;
+    if (!uuid.validate(id)) 
+        ctx.throw(Status.BadRequest, "Id is not a valid UUID");
+
+    const deletedScore = await sql`
+        DELETE FROM score
+        WHERE id = ${id}
+        RETURNING *
+    `;
+
+    if (deletedScore.count <= 0) {
+        notFound(ctx, `Score with id '${id}' not found`);
+        return;
+    }
+    
+    ctx.response.status = Status.NoContent
+    ctx.response.body = null;
+})
 
 const app = new Application();
 app.use(router.routes());
