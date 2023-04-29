@@ -1,9 +1,11 @@
 import "https://deno.land/std@0.185.0/dotenv/load.ts";
+import * as uuid from "https://deno.land/std@0.184.0/uuid/mod.ts";
 import { Status, STATUS_TEXT } from "https://deno.land/std@0.185.0/http/http_status.ts"
 import { Application, Context, Router } from "https://deno.land/x/oak@v12.3.0/mod.ts";
 
 import Score from "./Score.ts";
 import sql from "./db.ts";
+import { jsonResponse, notFound } from "./utils.ts";
 
 // Create score table
 await sql`
@@ -20,8 +22,7 @@ const router = new Router();
 router.get("/", async (ctx: Context) => {
     const scores: Score[] = await sql`SELECT * FROM score`;
 
-    ctx.response.body = JSON.stringify(scores);
-    ctx.response.type = "json";
+    jsonResponse(ctx, scores);
 });
 
 router.post("/", async (ctx: Context) => {
@@ -43,9 +44,27 @@ router.post("/", async (ctx: Context) => {
     `;
 
     ctx.response.status = Status.Created;
-    ctx.response.body = JSON.stringify(newScore);
-    ctx.response.type = "json";
+    jsonResponse(ctx, newScore);
 });
+
+router.get("/:id", async (ctx: Context) => {
+    if (!ctx.params.id)
+        ctx.throw(Status.BadRequest, STATUS_TEXT[Status.BadRequest]);
+
+    const { id } = ctx.params;
+    if (!uuid.validate(id))
+        ctx.throw(Status.BadRequest, "Id is not a valid UUID");
+
+    const score = await sql`
+        SELECT * FROM score
+        WHERE id = ${ctx.params.id}
+    `;
+
+    if (!score[0])
+        notFound(ctx, `Score with id '${id}' not found`);
+    
+    jsonResponse(ctx, score[0]);
+})
 
 const app = new Application();
 app.use(router.routes());
