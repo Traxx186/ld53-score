@@ -5,6 +5,7 @@ services:
     build: .
     container_name: ludem-dare-53-score
     restart: unless-stopped
+    env_file: .env
     networks:
       - caddy
     labels:

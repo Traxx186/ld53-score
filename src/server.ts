@@ -22,7 +22,13 @@ await sql`
 
 const router = new Router();
 router.get("/", async (ctx: Context) => {
-    const scores: Score[] = await sql`SELECT * FROM score`;
+    const scores: Score[] = await sql`
+        SELECT s.id, s.username, s.score
+        FROM score s
+        ORDER BY s.score DESC;
+    `;
+
+    scores.forEach(score => score.position = scores.indexOf(score) + 1);
 
     jsonResponse(ctx, scores);
 });
@@ -42,7 +48,7 @@ router.post("/", async (ctx: Context) => {
     const newScore = await sql`
         INSERT INTO score (username, score)
         VALUES (${ score.username }, ${ score.score })
-        RETURNING *
+        RETURNING id, username, score
     `;
 
     ctx.response.status = Status.Created;
@@ -101,7 +107,7 @@ router.patch("/:id", async (ctx: Context) => {
         SET score = ${score},
             updated_at = ${sql`now()`}
         WHERE id = ${id}
-        RETURNING *
+        RETURNING id, username, score
     `;
 
     jsonResponse(ctx, updatedScore[0]);
@@ -113,9 +119,9 @@ router.delete("/:id", async (ctx: Context) => {
         ctx.throw(Status.BadRequest, "Id is not a valid UUID");
 
     const deletedScore = await sql`
-        DELETE FROM score
+        DELETE FROM score s
         WHERE id = ${id}
-        RETURNING *
+        RETURNING s.id, s.username, s.score
     `;
 
     if (deletedScore.count <= 0) {

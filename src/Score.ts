@@ -13,4 +13,9 @@ export default interface Score {
    * The score.
    */
   score: number;
+
+  /**
+   * The position in the leaderboard.
+   */
+  position: number;
 }

@@ -5,7 +5,7 @@ import { Context } from "https://deno.land/x/oak@v12.3.0/mod.ts";
  * Util function to return a JSON response
  */
 export function jsonResponse(ctx: Context, data: any) {
-    ctx.response.body = JSON.stringify(data);
+    ctx.response.body = JSON.stringify({ data });
     ctx.response.type = "json";
 }
 
